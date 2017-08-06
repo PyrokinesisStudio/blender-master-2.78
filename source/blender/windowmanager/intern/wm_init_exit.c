@@ -194,7 +194,185 @@ void WM_init(bContext *C, int argc, const char **argv)
 	/* get the default database, plus a wm */
 	wm_homefile_read(C, NULL, G.factory_startup, false, NULL, NULL);
 	
+	// LET's try to create our own bScreen in the context with only what we want
+	// * i.e., not from blender.startup.c as populated by wm_homefile_read() above
 
+	// remove anything set by wm_homefile_read
+	// a single area (info from above) and no edges
+	// need to do this before UI_init and anything else affected by bScreen contents...
+
+
+	wmWindow *tst = CTX_wm_manager(C)->windows.first;
+
+
+	bScreen* ctxscr = tst->screen;
+	tst->screen->areabase.first = NULL;
+	tst->screen->areabase.last = NULL;
+
+
+	tst->screen->vertbase.first = NULL;
+	tst->screen->vertbase.last = NULL;
+
+	//	area->next = NULL;
+    tst->screen->edgebase.first = NULL;
+	tst->screen->edgebase.last = NULL;
+	tst->screen->regionbase.first = NULL;
+	tst->screen->regionbase.last = NULL;
+
+
+#if 0
+	comment: REFERENCE, from DNA_screen_types.h
+	typedef struct ScrArea {
+	    struct ScrArea *next, *prev;
+
+	    ScrVert *v1, *v2, *v3, *v4;        /* ordered (bl, tl, tr, br) */
+	    bScreen *full;            /* if area==full, this is the parent */
+
+	    rcti totrct;            /* rect bound by v1 v2 v3 v4 */
+
+	    char spacetype, butspacetype;    /* SPACE_..., butspacetype is button arg  */
+	    short winx, winy;                /* size */
+
+	    short headertype;                /* OLD! 0=no header, 1= down, 2= up */
+	    short do_refresh;                /* private, for spacetype refresh callback */
+	    short flag;
+	    short region_active_win;        /* index of last used region of 'RGN_TYPE_WINDOW'
+	                                     * runtime variable, updated by executing operators */
+	    char temp, pad;
+
+	    struct SpaceType *type;        /* callbacks for this space type */
+
+	    /* A list of space links (editors) that were open in this area before. When
+	     * changing the editor type, we try to reuse old editor data from this list.
+	     * The first item is the active/visible one.
+	     */
+	    ListBase spacedata;  /* SpaceLink */
+	    /* NOTE: This region list is the one from the active/visible editor (first item in
+	     * spacedata list). Use SpaceLink.regionbase if it's inactive (but only then)!
+	     */
+	    ListBase regionbase; /* ARegion */
+	    ListBase handlers;   /* wmEventHandler */
+
+	    ListBase actionzones;    /* AZone */
+	} ScrArea;
+#endif
+
+
+
+//	ScrArea* rmar = tst->screen->areabase.first;
+//	rmar->next = NULL;
+
+	Main *bmain = G.main; // not sure if we really care about G.main, or
+//	bScreen *screen = bmain->screen.last;
+	bScreen *screen = bmain->screen.first;
+	screen = screen->id.next; screen = screen->id.next; screen = screen->id.next;
+	screen = screen->id.next;
+//	bScreen *screen = ((bScreen *)bmain->screen.last);
+	// what's actually in the bContext instance instead...
+//	for (bScreen *screen = bmain->screen.first; screen; screen = screen->id.next) {
+
+		// outline in application window coords of screen area??
+		ScrVert *vtx_bl = screen->vertbase.first;
+		printf("bottom left: %d %d\n", vtx_bl->vec.x, vtx_bl->vec.y);
+
+		ScrVert *vtx_tl = vtx_bl->next;
+		printf("top left: %d %d\n", vtx_tl->vec.x, vtx_tl->vec.y);
+
+		ScrVert *vtx_tr = vtx_tl->next;
+		printf("top right: %d %d\n", vtx_tr->vec.x, vtx_tr->vec.y);
+
+		ScrVert *vtx_br = vtx_tr->next;
+		printf("bottom right: %d %d\n", vtx_br->vec.x, vtx_br->vec.y);
+
+		// set our context screen to this screen's vertex dimensions
+  	  tst->screen->vertbase.first = screen->vertbase.first;
+        tst->screen->vertbase.last = screen->vertbase.last;
+
+
+#if 0
+		ScrVert *cv1 = ctxscr->vertbase.first;
+		ScrVert *cv2 = cv1->next;
+		ScrVert *cv3 = cv2->next;
+		ScrVert *cv4 = cv3->next;
+
+		cv1->vec.x = vtx_bl->vec.x;
+		cv1->vec.y = vtx_bl->vec.y;
+
+		cv2->vec.x = vtx_tl->vec.x;
+		cv2->vec.y = vtx_tl->vec.y;
+
+		cv3->vec.x = vtx_tr->vec.x;
+		cv3->vec.y = vtx_tr->vec.y;
+
+		cv4->vec.x = vtx_br->vec.x;
+		cv4->vec.y = vtx_br->vec.y;
+#endif
+
+		ScrArea *area;
+		for (area = screen->areabase.first; area; area = area->next) {
+			SpaceLink *space_link;
+			ARegion *ar;
+
+//			ar->regiontype = RGN_TYPE_WINDOW;
+			for (space_link = area->spacedata.first; space_link; space_link = space_link->next) {
+
+				if (space_link->spacetype == SPACE_INFO ) { //SPACE_CLIP) {
+//				    Space *space_clip = (SpaceClip *) space_link;
+//				    space_clip->flag &= ~SC_MANUAL_CALIBRATION;
+				}
+
+				if (space_link->spacetype == SPACE_VIEW3D) { //SPACE_CLIP) {
+					area->next = NULL;
+					tst->screen->areabase.first = area;
+					tst->screen->areabase.last = area;
+
+					// we need to set the ScrArea verts to the bScreen verts *from the bContext* to fill up the
+					// entire screen with the "screen area" containing the editor
+
+					area->v1->vec.x = vtx_bl->vec.x;
+					area->v1->vec.y = vtx_bl->vec.y;
+
+
+					area->v2->vec.x = vtx_tl->vec.x;
+					area->v2->vec.y = vtx_tl->vec.y;
+
+
+					area->v3->vec.x = vtx_tr->vec.x;
+					area->v3->vec.y = vtx_tr->vec.y;
+
+
+					area->v4->vec.x = vtx_br->vec.x;
+					area->v4->vec.y = vtx_br->vec.y;
+
+				}
+			}
+#if 0
+			for (ar = area->regionbase.first; ar; ar = ar->next) {
+				/* Remove all stored panels, we want to use defaults
+				 * (order, open/closed) as defined by UI code here! */
+				BLI_freelistN(&ar->panels);
+
+				/* some toolbars have been saved as initialized,
+				 * we don't want them to have odd zoom-level or scrolling set, see: T47047 */
+				if (ELEM(ar->regiontype, RGN_TYPE_UI, RGN_TYPE_TOOLS, RGN_TYPE_TOOL_PROPS)) {
+					ar->v2d.flag &= ~V2D_IS_INITIALISED;
+				}
+			}
+#endif
+		}
+//	}
+//	edge->next = NULL;
+
+	// Now that we have a truncated context with no spacetype editors,
+	// we should be able to remove the editor source code...
+
+
+ /*
+	for ( ; area; area = area->next() ) {
+		// this is really bad but just for experimentation; remove by setting next to NULL
+		C->wm.screen->areabase
+	}
+*/
 	BLT_lang_set(NULL);
 
 	if (!G.background) {

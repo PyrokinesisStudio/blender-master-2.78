@@ -1240,10 +1240,15 @@ void ED_screen_refresh(wmWindowManager *wm, wmWindow *win)
 			wm_subwindow_position(win, win->screen->mainwin, &winrct, false);
 		}
 		
+		int count = 0;
+		printf("count %d\n", count);
 		for (sa = win->screen->areabase.first; sa; sa = sa->next) {
 			/* set spacetype and region callbacks, calls init() */
 			/* sets subwindows for regions, adds handlers */
-			ED_area_initialize(wm, win, sa);
+//			if (count < 2) {
+				ED_area_initialize(wm, win, sa);
+//				count += 1;
+//			}
 		}
 	
 		/* wake up animtimer */
@@ -1263,13 +1268,19 @@ void ED_screen_refresh(wmWindowManager *wm, wmWindow *win)
 void ED_screens_initialize(wmWindowManager *wm)
 {
 	wmWindow *win;
+	static count = 0;
 	
 	for (win = wm->windows.first; win; win = win->next) {
 		
 		if (win->screen == NULL)
 			win->screen = G.main->screen.first;
 		
-		ED_screen_refresh(wm, win);
+//		printf("ED_screens_initialize\n");
+
+//        if (count < 1) {
+        	ED_screen_refresh(wm, win);
+//        	count += 1;
+//        }
 	}
 }
 
