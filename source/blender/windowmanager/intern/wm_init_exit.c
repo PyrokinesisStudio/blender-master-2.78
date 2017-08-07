@@ -311,7 +311,6 @@ void WM_init(bContext *C, int argc, const char **argv)
 		ScrArea *area;
 		for (area = screen->areabase.first; area; area = area->next) {
 			SpaceLink *space_link;
-			ARegion *ar;
 
 //			ar->regiontype = RGN_TYPE_WINDOW;
 			for (space_link = area->spacedata.first; space_link; space_link = space_link->next) {
@@ -344,21 +343,31 @@ void WM_init(bContext *C, int argc, const char **argv)
 					area->v4->vec.x = vtx_br->vec.x;
 					area->v4->vec.y = vtx_br->vec.y;
 
-				}
-			}
 #if 0
-			for (ar = area->regionbase.first; ar; ar = ar->next) {
-				/* Remove all stored panels, we want to use defaults
-				 * (order, open/closed) as defined by UI code here! */
-				BLI_freelistN(&ar->panels);
+					// nothing here, this must get created later
+					// and then the layout is added each draw frame
+					// since the python script laysout the header
+					// in the draw call specified...
+					ARegion *ar = NULL;
+					for (ar = space_link->regionbase.first; ar; ar = ar->next) {
+						/* Remove all stored panels, we want to use defaults
+						 * (order, open/closed) as defined by UI code here! */
+		//				BLI_freelistN(&ar->panels);
 
-				/* some toolbars have been saved as initialized,
-				 * we don't want them to have odd zoom-level or scrolling set, see: T47047 */
-				if (ELEM(ar->regiontype, RGN_TYPE_UI, RGN_TYPE_TOOLS, RGN_TYPE_TOOL_PROPS)) {
-					ar->v2d.flag &= ~V2D_IS_INITIALISED;
+						/* some toolbars have been saved as initialized,
+						 * we don't want them to have odd zoom-level or scrolling set, see: T47047 */
+						if (ELEM(ar->regiontype, RGN_TYPE_HEADER)) {
+
+							//uiBlock* block = NULL;
+							//block = ar->uiblocks.first;
+							//uiLayout *layout = block->curlayout;
+
+							printf("found header\n");
+						}
+					}
+#endif
 				}
 			}
-#endif
 		}
 //	}
 //	edge->next = NULL;
