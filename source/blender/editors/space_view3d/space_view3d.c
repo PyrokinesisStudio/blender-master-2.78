@@ -78,6 +78,8 @@
 
 #include "view3d_intern.h"  /* own include */
 
+static void header_register(ARegionType* art);
+
 /* ******************** manage regions ********************* */
 
 ARegion *view3d_has_buttons_region(ScrArea *sa)
@@ -1533,8 +1535,353 @@ void ED_spacetype_view3d(void)
 	art->listener = view3d_header_region_listener;
 	art->init = view3d_header_region_init;
 	art->draw = view3d_header_region_draw;
+
+	header_register(art);
+
 	BLI_addhead(&st->regiontypes, art);
 	
 	BKE_spacetype_register(st);
 }
+
+/* EXPERIMENTAL... let's try to create the header layout here instead of python via
+ * RNA / Python scripts
+ */
+
+// static StructRNA *rna_Header_register(Main *bmain, ReportList *reports, void *data, const char *identifier,
+// taken from rna_ui.c
+
+static void header_register(ARegionType* art)
+{
+//	ARegionType *art;
+	HeaderType *ht = {NULL};//, dummyht = {NULL};
+//	Header dummyheader = {NULL};
+//	PointerRNA dummyhtr;
+//	int have_function[1];
+
+	/* setup dummy header & header type to store static properties in */
+//	dummyheader.type->ext = NULL; //&dummyht;
+//	dummyheader.type->id = "doesn't matter";
+//	dummyheader.type->space_type = SPACE_VIEW3D;
+//	dummyheader.type->next = NULL; // this is probably for different modes as it changes the ui layout buttons, etc.
+//	dummyheader.type->draw = NULL; // null for now :-(
+//	RNA_pointer_create(NULL, &RNA_Header, &dummyheader, &dummyhtr);
+
+
+#if 0
+	// looks like most of this stuff is rna / python registration, we do manually so not needed!
+	// validate the python class */
+	if (validate(&dummyhtr, data, have_function) != 0)
+		return NULL;
+
+	if (strlen(identifier) >= sizeof(dummyht.idname)) {
+		BKE_reportf(reports, RPT_ERROR, "Registering header class: '%s' is too long, maximum length is %d",
+		            identifier, (int)sizeof(dummyht.idname));
+		return NULL;
+	}
+
+	if (!(art = region_type_find(reports, dummyht.space_type, RGN_TYPE_HEADER)))
+		return NULL;
+
+	/* check if we have registered this header type before, and remove it */
+	for (ht = art->headertypes.first; ht; ht = ht->next) {
+		if (STREQ(ht->idname, dummyht.idname)) {
+			if (ht->ext.srna)
+				rna_Header_unregister(bmain, ht->ext.srna);
+			break;
+		}
+	}
+#endif
+
+	/* create a new header type */
+	ht = MEM_callocN(sizeof(HeaderType), "python buttons header");
+//	memcpy(ht, &dummyht, sizeof(dummyht));
+
+//	ht->ext = NULL; //&dummyht;
+//	ht->idname = '';
+	ht->space_type = SPACE_VIEW3D;
+	ht->next = NULL; // this is probably for different modes as it changes the ui layout buttons, etc.
+	ht->draw = NULL; // null for now :-(
+
+//	ht->ext.srna = RNA_def_struct_ptr(&BLENDER_RNA, ht->idname, &RNA_Header);
+//	ht->ext.data = data;
+//	ht->ext.call = call;
+//	ht->ext.free = free;
+//	RNA_struct_blender_type_set(ht->ext.srna, ht);
+
+//	ht->draw = (have_function[0]) ? header_draw : NULL;
+
+	BLI_addtail(&art->headertypes, ht);
+
+	/* update while blender is running */
+	WM_main_add_notifier(NC_WINDOW, NULL);
+
+//	return ht->ext.srna;
+}
+
+#if 0
+static void v3d_transform_butsR(uiLayout *layout, PointerRNA *ptr)
+{
+	uiLayout *split, *colsub;
+
+	split = uiLayoutSplit(layout, 0.8f, false);
+
+	if (ptr->type == &RNA_PoseBone) {
+		PointerRNA boneptr;
+		Bone *bone;
+
+		boneptr = RNA_pointer_get(ptr, "bone");
+		bone = boneptr.data;
+		uiLayoutSetActive(split, !(bone->parent && bone->flag & BONE_CONNECTED));
+	}
+	colsub = uiLayoutColumn(split, true);
+	uiItemR(colsub, ptr, "location", 0, NULL, ICON_NONE);
+	colsub = uiLayoutColumn(split, true);
+	uiItemL(colsub, "", ICON_NONE);
+	uiItemR(colsub, ptr, "lock_location", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+
+	split = uiLayoutSplit(layout, 0.8f, false);
+
+	switch (RNA_enum_get(ptr, "rotation_mode")) {
+		case ROT_MODE_QUAT: /* quaternion */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_quaternion", 0, IFACE_("Rotation"), ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "lock_rotations_4d", UI_ITEM_R_TOGGLE, IFACE_("4L"), ICON_NONE);
+			if (RNA_boolean_get(ptr, "lock_rotations_4d"))
+				uiItemR(colsub, ptr, "lock_rotation_w", UI_ITEM_R_TOGGLE + UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			else
+				uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+		case ROT_MODE_AXISANGLE: /* axis angle */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_axis_angle", 0, IFACE_("Rotation"), ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "lock_rotations_4d", UI_ITEM_R_TOGGLE, IFACE_("4L"), ICON_NONE);
+			if (RNA_boolean_get(ptr, "lock_rotations_4d"))
+				uiItemR(colsub, ptr, "lock_rotation_w", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			else
+				uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+		default: /* euler rotations */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_euler", 0, IFACE_("Rotation"), ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+	}
+	uiItemR(layout, ptr, "rotation_mode", 0, "", ICON_NONE);
+
+	split = uiLayoutSplit(layout, 0.8f, false);
+	colsub = uiLayoutColumn(split, true);
+	uiItemR(colsub, ptr, "scale", 0, NULL, ICON_NONE);
+	colsub = uiLayoutColumn(split, true);
+	uiItemL(colsub, "", ICON_NONE);
+	uiItemR(colsub, ptr, "lock_scale", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+
+	if (ptr->type == &RNA_Object) {
+		Object *ob = ptr->data;
+		/* dimensions and editmode just happen to be the same checks */
+		if (OB_TYPE_SUPPORT_EDITMODE(ob->type)) {
+			uiItemR(layout, ptr, "dimensions", 0, NULL, ICON_NONE);
+		}
+	}
+}
+
+static void v3d_posearmature_buts(uiLayout *layout, Object *ob)
+{
+	bPoseChannel *pchan;
+	PointerRNA pchanptr;
+	uiLayout *col;
+
+	pchan = BKE_pose_channel_active(ob);
+
+	if (!pchan) {
+		uiItemL(layout, IFACE_("No Bone Active"), ICON_NONE);
+		return;
+	}
+
+	RNA_pointer_create(&ob->id, &RNA_PoseBone, pchan, &pchanptr);
+
+	col = uiLayoutColumn(layout, false);
+
+	/* XXX: RNA buts show data in native types (i.e. quats, 4-component axis/angle, etc.)
+	 * but old-school UI shows in eulers always. Do we want to be able to still display in Eulers?
+	 * Maybe needs RNA/ui options to display rotations as different types... */
+	v3d_transform_butsR(col, &pchanptr);
+}
+
+static void v3d_editarmature_buts(uiLayout *layout, Object *ob)
+{
+	bArmature *arm = ob->data;
+	EditBone *ebone;
+	uiLayout *col;
+	PointerRNA eboneptr;
+
+	ebone = arm->act_edbone;
+
+	if (!ebone || (ebone->layer & arm->layer) == 0) {
+		uiItemL(layout, IFACE_("Nothing selected"), ICON_NONE);
+		return;
+	}
+
+	RNA_pointer_create(&arm->id, &RNA_EditBone, ebone, &eboneptr);
+
+	col = uiLayoutColumn(layout, false);
+	uiItemR(col, &eboneptr, "head", 0, NULL, ICON_NONE);
+	if (ebone->parent && ebone->flag & BONE_CONNECTED) {
+		PointerRNA parptr = RNA_pointer_get(&eboneptr, "parent");
+		uiItemR(col, &parptr, "tail_radius", 0, IFACE_("Radius (Parent)"), ICON_NONE);
+	}
+	else {
+		uiItemR(col, &eboneptr, "head_radius", 0, IFACE_("Radius"), ICON_NONE);
+	}
+
+	uiItemR(col, &eboneptr, "tail", 0, NULL, ICON_NONE);
+	uiItemR(col, &eboneptr, "tail_radius", 0, IFACE_("Radius"), ICON_NONE);
+
+	uiItemR(col, &eboneptr, "roll", 0, NULL, ICON_NONE);
+	uiItemR(col, &eboneptr, "envelope_distance", 0, IFACE_("Envelope"), ICON_NONE);
+}
+
+static void v3d_editmetaball_buts(uiLayout *layout, Object *ob)
+{
+	PointerRNA mbptr, ptr;
+	MetaBall *mball = ob->data;
+	uiLayout *col;
+
+	if (!mball || !(mball->lastelem))
+		return;
+
+	RNA_pointer_create(&mball->id, &RNA_MetaBall, mball, &mbptr);
+
+	RNA_pointer_create(&mball->id, &RNA_MetaElement, mball->lastelem, &ptr);
+
+	col = uiLayoutColumn(layout, false);
+	uiItemR(col, &ptr, "co", 0, NULL, ICON_NONE);
+
+	uiItemR(col, &ptr, "radius", 0, NULL, ICON_NONE);
+	uiItemR(col, &ptr, "stiffness", 0, NULL, ICON_NONE);
+
+	uiItemR(col, &ptr, "type", 0, NULL, ICON_NONE);
+
+	col = uiLayoutColumn(layout, true);
+	switch (RNA_enum_get(&ptr, "type")) {
+		case MB_BALL:
+			break;
+		case MB_CUBE:
+			uiItemL(col, IFACE_("Size:"), ICON_NONE);
+			uiItemR(col, &ptr, "size_x", 0, "X", ICON_NONE);
+			uiItemR(col, &ptr, "size_y", 0, "Y", ICON_NONE);
+			uiItemR(col, &ptr, "size_z", 0, "Z", ICON_NONE);
+			break;
+		case MB_TUBE:
+			uiItemL(col, IFACE_("Size:"), ICON_NONE);
+			uiItemR(col, &ptr, "size_x", 0, "X", ICON_NONE);
+			break;
+		case MB_PLANE:
+			uiItemL(col, IFACE_("Size:"), ICON_NONE);
+			uiItemR(col, &ptr, "size_x", 0, "X", ICON_NONE);
+			uiItemR(col, &ptr, "size_y", 0, "Y", ICON_NONE);
+			break;
+		case MB_ELIPSOID:
+			uiItemL(col, IFACE_("Size:"), ICON_NONE);
+			uiItemR(col, &ptr, "size_x", 0, "X", ICON_NONE);
+			uiItemR(col, &ptr, "size_y", 0, "Y", ICON_NONE);
+			uiItemR(col, &ptr, "size_z", 0, "Z", ICON_NONE);
+			break;
+	}
+}
+
+static void do_view3d_region_buttons(bContext *C, void *UNUSED(index), int event)
+{
+	Scene *scene = CTX_data_scene(C);
+	View3D *v3d = CTX_wm_view3d(C);
+	Object *ob = OBACT;
+
+	switch (event) {
+
+		case B_REDR:
+			ED_area_tag_redraw(CTX_wm_area(C));
+			return; /* no notifier! */
+
+		case B_OBJECTPANELMEDIAN:
+			if (ob) {
+				v3d_editvertex_buts(NULL, v3d, ob, 1.0);
+				DAG_id_tag_update(&ob->id, OB_RECALC_DATA);
+			}
+			break;
+	}
+
+	/* default for now */
+	WM_event_add_notifier(C, NC_SPACE | ND_SPACE_VIEW3D, v3d);
+}
+
+static int view3d_panel_transform_poll(const bContext *C, PanelType *UNUSED(pt))
+{
+	Scene *scene = CTX_data_scene(C);
+	return (scene->basact != NULL);
+}
+
+static void view3d_panel_transform(const bContext *C, Panel *pa)
+{
+	uiBlock *block;
+	Scene *scene = CTX_data_scene(C);
+	Object *obedit = CTX_data_edit_object(C);
+	Object *ob = scene->basact->object;
+	uiLayout *col;
+
+	block = uiLayoutGetBlock(pa->layout);
+	UI_block_func_handle_set(block, do_view3d_region_buttons, NULL);
+
+	col = uiLayoutColumn(pa->layout, false);
+
+	if (ob == obedit) {
+		if (ob->type == OB_ARMATURE) {
+			v3d_editarmature_buts(col, ob);
+		}
+		else if (ob->type == OB_MBALL) {
+			v3d_editmetaball_buts(col, ob);
+		}
+		else {
+			View3D *v3d = CTX_wm_view3d(C);
+			const float lim = 10000.0f * max_ff(1.0f, ED_view3d_grid_scale(scene, v3d, NULL));
+			v3d_editvertex_buts(col, v3d, ob, lim);
+		}
+	}
+	else if (ob->mode & OB_MODE_POSE) {
+		v3d_posearmature_buts(col, ob);
+	}
+	else {
+		PointerRNA obptr;
+
+		RNA_id_pointer_create(&ob->id, &obptr);
+		v3d_transform_butsR(col, &obptr);
+	}
+}
+
+void view3d_buttons_register(ARegionType *art)
+{
+	PanelType *pt;
+
+	pt = MEM_callocN(sizeof(PanelType), "spacetype view3d panel object");
+	strcpy(pt->idname, "VIEW3D_PT_transform");
+	strcpy(pt->label, N_("Transform"));  /* XXX C panels not  available through RNA (bpy.types)! */
+	strcpy(pt->translation_context, BLT_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = view3d_panel_transform;
+	pt->poll = view3d_panel_transform_poll;
+	BLI_addtail(&art->paneltypes, pt);
+
+	pt = MEM_callocN(sizeof(PanelType), "spacetype view3d panel vgroup");
+	strcpy(pt->idname, "VIEW3D_PT_vgroup");
+	strcpy(pt->label, N_("Vertex Weights"));  /* XXX C panels are not available through RNA (bpy.types)! */
+	strcpy(pt->translation_context, BLT_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = view3d_panel_vgroup;
+	pt->poll = view3d_panel_vgroup_poll;
+	BLI_addtail(&art->paneltypes, pt);
+}
+#endif
+
 
