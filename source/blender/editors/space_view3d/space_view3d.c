@@ -90,6 +90,9 @@ static void v3d_transform_butsR(uiLayout *layout, PointerRNA *ptr);
 //static void view3d_panel_vgroup(const bContext *C, Panel *pa);
 //static int view3d_panel_vgroup_poll(const bContext *C, PanelType *UNUSED(pt));
 
+static void v3d_header_butsR(uiLayout *layout, PointerRNA *ptr);
+static void view3d_header(const bContext *C, Header *he);
+
 
 /* ******************** manage regions ********************* */
 
@@ -1693,6 +1696,7 @@ typedef struct {
 
 static void header_register(ARegionType* art)
 {
+#if 0
 //	ARegionType *art;
 	HeaderType *ht = {NULL};//, dummyht = {NULL};
 //	Header dummyheader = {NULL};
@@ -1757,7 +1761,113 @@ static void header_register(ARegionType* art)
 	WM_main_add_notifier(NC_WINDOW, NULL);
 
 //	return ht->ext.srna;
+#endif
+
+	HeaderType *ht;
+
+	ht = MEM_callocN(sizeof(PanelType), "spacetype view3d panel object");
+	strcpy(ht->idname, "VIEW3D_HT_header");
+//	strcpy(ht->label, "HeaderBRAD");  /* XXX C panels not  available through RNA (bpy.types)! */
+//	strcpy(ht->translation_context, BLT_I18NCONTEXT_DEFAULT_BPYRNA);
+	ht->draw = view3d_header;
+//	ht->poll = view3d_header_poll;
+	BLI_addtail(&art->headertypes, ht);
+
 }
+
+static void view3d_header(const bContext *C, Header *he)
+{
+	uiBlock *block;
+	Scene *scene = CTX_data_scene(C);
+	Object *obedit = CTX_data_edit_object(C);
+	Object *ob = scene->basact->object;
+	uiLayout *col;
+
+	block = uiLayoutGetBlock(he->layout);
+//	UI_block_func_handle_set(block, do_view3d_region_header, NULL);
+
+	col = uiLayoutColumn(he->layout, false);
+
+	PointerRNA obptr;
+
+	RNA_id_pointer_create(&ob->id, &obptr);
+	v3d_header_butsR(col, &obptr);
+}
+
+static void v3d_header_butsR(uiLayout *layout, PointerRNA *ptr)
+{
+	uiLayout *row;
+
+	row = uiLayoutRow(layout, true);
+
+//	colsub = uiLayoutColumn(split, true);
+//	uiItemR(colsub, ptr, "location", 0, NULL, ICON_NONE);
+//	colsub = uiLayoutColumn(split, true);
+
+	uiItemL(row, "this is the label", ICON_NONE);
+	uiItemL(row, "this is the label2", ICON_NONE);
+//	uiItemR(colsub, ptr, "lock_location", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+
+//	split = uiLayoutSplit(layout, 0.8f, false);
+
+
+#if 0
+	switch (RNA_enum_get(ptr, "rotation_mode")) {
+		case ROT_MODE_QUAT: /* quaternion */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_quaternion", 0, "RotationBRAD", ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "lock_rotations_4d", UI_ITEM_R_TOGGLE, "4L", ICON_NONE);
+			if (RNA_boolean_get(ptr, "lock_rotations_4d"))
+				uiItemR(colsub, ptr, "lock_rotation_w", UI_ITEM_R_TOGGLE + UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			else
+				uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+		case ROT_MODE_AXISANGLE: /* axis angle */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_axis_angle", 0, "RotationBRAD", ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "lock_rotations_4d", UI_ITEM_R_TOGGLE, "4L", ICON_NONE);
+			if (RNA_boolean_get(ptr, "lock_rotations_4d"))
+				uiItemR(colsub, ptr, "lock_rotation_w", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			else
+				uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+		default: /* euler rotations */
+			colsub = uiLayoutColumn(split, true);
+			uiItemR(colsub, ptr, "rotation_euler", 0, "RotationBRAD", ICON_NONE);
+			colsub = uiLayoutColumn(split, true);
+			uiItemL(colsub, "", ICON_NONE);
+			uiItemR(colsub, ptr, "lock_rotation", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+			break;
+	}
+	uiItemR(layout, ptr, "rotation_mode", 0, "", ICON_NONE);
+
+	split = uiLayoutSplit(layout, 0.8f, false);
+	colsub = uiLayoutColumn(split, true);
+	uiItemR(colsub, ptr, "scale", 0, NULL, ICON_NONE);
+	colsub = uiLayoutColumn(split, true);
+	uiItemL(colsub, "", ICON_NONE);
+	uiItemR(colsub, ptr, "lock_scale", UI_ITEM_R_TOGGLE | UI_ITEM_R_ICON_ONLY, "", ICON_NONE);
+
+	if (ptr->type == &RNA_Object) {
+		Object *ob = ptr->data;
+		/* dimensions and editmode just happen to be the same checks */
+		if (OB_TYPE_SUPPORT_EDITMODE(ob->type)) {
+			uiItemR(layout, ptr, "dimensions", 0, NULL, ICON_NONE);
+		}
+	}
+#endif
+
+	printf("calling draw routine for view3e header\n");
+}
+
+
+
+
+/////////////////////////////// PANEL DRAW for TOOLS ///////////////////////////////////////////
 
 
 static void v3d_transform_butsR(uiLayout *layout, PointerRNA *ptr)
