@@ -1522,6 +1522,8 @@ void ED_spacetype_view3d(void)
 	art->draw = view3d_tools_region_draw;
 	BLI_addhead(&st->regiontypes, art);
 	
+	view3d_toolshelf_register(art);
+
 
 	/* regions: tool properties */
 	art = MEM_callocN(sizeof(ARegionType), "spacetype view3d tool properties region");
