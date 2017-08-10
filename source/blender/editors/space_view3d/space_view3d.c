@@ -1781,17 +1781,22 @@ static void view3d_header(const bContext *C, Header *he)
 	Scene *scene = CTX_data_scene(C);
 	Object *obedit = CTX_data_edit_object(C);
 	Object *ob = scene->basact->object;
-	uiLayout *col;
+	uiLayout *lo, *col;
 
 	block = uiLayoutGetBlock(he->layout);
 //	UI_block_func_handle_set(block, do_view3d_region_header, NULL);
 
 	col = uiLayoutColumn(he->layout, false);
+	lo = uiLayoutRow(he->layout, false);
 
+	uiTemplateHeader3D(lo, C);
+
+#if 0
 	PointerRNA obptr;
 
 	RNA_id_pointer_create(&ob->id, &obptr);
 	v3d_header_butsR(col, &obptr);
+#endif
 }
 
 static void v3d_header_butsR(uiLayout *layout, PointerRNA *ptr)
