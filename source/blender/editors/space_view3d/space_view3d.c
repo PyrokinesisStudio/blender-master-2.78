@@ -1543,6 +1543,65 @@ void ED_spacetype_view3d(void)
 	art->init = view3d_header_region_init;
 	art->draw = view3d_header_region_draw;
 
+#if 0
+	// similar to view3d_tools_region_draw from above.
+	// view3d_header_region_draw -> ED_region_header
+    //which calls which iterates thru all header types defining the ui...same for tools.
+	void ED_region_header(const bContext *C, ARegion *ar)
+	{
+		uiStyle *style = UI_style_get_dpi();
+		uiBlock *block;
+		uiLayout *layout;
+		HeaderType *ht;
+		Header header = {NULL};
+		int maxco, xco, yco;
+		int headery = ED_area_headersize();
+
+		/* clear */
+		UI_ThemeClearColor((ED_screen_area_active(C)) ? TH_HEADER : TH_HEADERDESEL);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		/* set view2d view matrix for scrolling (without scrollers) */
+		UI_view2d_view_ortho(&ar->v2d);
+
+		xco = maxco = 0.4f * UI_UNIT_X;
+		yco = headery - floor(0.2f * UI_UNIT_Y);
+
+		/* draw all headers types */
+		for (ht = ar->type->headertypes.first; ht; ht = ht->next) {
+			block = UI_block_begin(C, ar, ht->idname, UI_EMBOSS);
+			layout = UI_block_layout(block, UI_LAYOUT_HORIZONTAL, UI_LAYOUT_HEADER, xco, yco, UI_UNIT_Y, 1, 0, style);
+
+			if (ht->draw) {
+				header.type = ht;
+				header.layout = layout;
+				ht->draw(C, &header);
+
+				/* for view2d */
+				xco = uiLayoutGetWidth(layout);
+				if (xco > maxco)
+					maxco = xco;
+			}
+
+			UI_block_layout_resolve(block, &xco, &yco);
+
+			/* for view2d */
+			if (xco > maxco)
+				maxco = xco;
+
+			UI_block_end(C, block);
+			UI_block_draw(C, block);
+		}
+
+		/* always as last  */
+		UI_view2d_totRect_set(&ar->v2d, maxco + UI_UNIT_X + 80, headery);
+
+		/* restore view matrix? */
+		UI_view2d_view_restore(C);
+	}
+#endif
+
+
 	header_register(art);
 
 	BLI_addhead(&st->regiontypes, art);
